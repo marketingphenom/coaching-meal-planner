@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioSource Nutra - Coach Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; }
+        .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 36px; font-weight: 700; color: #1e3a8a; margin-bottom: 8px; }
+        .stat-label { color: #6b7280; font-size: 14px; }
+        .clients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .client-card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; }
+        .client-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.15); transform: translateY(-5px); }
+        .client-name { font-size: 20px; font-weight: 700; color: #1e3a8a; margin-bottom: 15px; }
+        .client-detail { padding: 8px 0; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; }
+        .client-detail:last-child { border-bottom: none; }
+        .detail-label { color: #6b7280; font-size: 14px; }
+        .detail-value { color: #1e3a8a; font-weight: 600; }
+        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-active { background: #dcfce7; color: #065f46; }
+        .badge-completed { background: #dbeafe; color: #1e40af; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; }
+        .btn-primary:hover { transform: scale(1.05); }
+        .btn-secondary { background: #e5e7eb; color: #6b7280; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 20px; max-width: 1200px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 40px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .close-modal { background: none; border: none; font-size: 40px; color: #6b7280; cursor: pointer; }
+        .tabs { display: flex; gap: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 30px; }
+        .tab { padding: 12px 24px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; color: #6b7280; }
+        .tab.active { color: #1e3a8a; border-bottom-color: #f068b3; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .meal-day { background: #f9fafb; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .meal-item { background: white; border-left: 4px solid #3b82f6; padding: 15px; margin: 10px 0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .meal-info h4 { color: #1e3a8a; margin-bottom: 5px; }
+        .meal-actions { display: flex; gap: 10px; }
+        .btn-small { padding: 6px 12px; font-size: 13px; }
+        .order-link { display: flex; align-items: center; gap: 10px; padding: 15px; background: #f0fdf4; border-radius: 8px; margin: 15px 0; }
+        .order-link a { color: #16a34a; font-weight: 600; text-decoration: none; }
+        .filter-bar { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
+        .search-input { flex: 1; padding: 12px 20px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; }
+        .loading { text-align: center; padding: 60px; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🥗 BioSource Nutra Coach Dashboard</h1>
+        <p>Manage Your Clients & Meal Plans</p>
+    </div>
+
+    <div class="container">
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalClients">0</div>
+                <div class="stat-label">Total Clients</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeClients">0</div>
+                <div class="stat-label">Active Plans</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgDuration">0</div>
+                <div class="stat-label">Avg Plan Length (days)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRevenue">$0</div>
+                <div class="stat-label">Total Revenue (This Month)</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <input type="text" class="search-input" id="searchInput" placeholder="🔍 Search clients by name or email...">
+            <select class="btn btn-secondary" id="statusFilter" onchange="filterClients()">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="paused">Paused</option>
+            </select>
+            <button class="btn btn-primary" onclick="loadClients()">🔄 Refresh</button>
+        </div>
+
+        <!-- Clients Grid -->
+        <div id="clientsGrid" class="clients-grid">
+            <div class="loading">Loading clients...</div>
+        </div>
+    </div>
+
+    <!-- CLIENT DETAIL MODAL -->
+    <div id="clientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalClientName">Client Details</h2>
+                <button class="close-modal" onclick="closeModal()">×</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('profile')">👤 Profile</button>
+                <button class="tab" onclick="switchTab('mealPlan')">🥗 Meal Plan</button>
+                <button class="tab" onclick="switchTab('orders')">🛒 Orders</button>
+                <button class="tab" onclick="switchTab('activity')">📊 Activity</button>
+            </div>
+
+            <!-- Profile Tab -->
+            <div id="profileTab" class="tab-content active">
+                <div id="profileContent"></div>
+                <button class="btn btn-primary" style="margin-top: 20px;" onclick="saveClientProfile()">💾 Save Changes</button>
+            </div>
+
+            <!-- Meal Plan Tab -->
+            <div id="mealPlanTab" class="tab-content">
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="printMealPlan()">🖨️ Print Plan</button>
+                    <button class="btn btn-primary" onclick="emailMealPlan()">📧 Email to Client</button>
+                    <button class="btn btn-secondary" onclick="downloadPDF()">📄 Download PDF</button>
+                </div>
+                <div id="mealPlanContent"></div>
+            </div>
+
+            <!-- Orders Tab -->
+            <div id="ordersTab" class="tab-content">
+                <div id="ordersContent"></div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div id="activityTab" class="tab-content">
+                <div id="activityContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GHL Configuration
+        const GHL_CONFIG = {
+            locationId: 'YOUR_GHL_LOCATION_ID',
+            apiKey: 'YOUR_GHL_API_KEY',
+            baseUrl: 'https://services.leadconnectorhq.com'
+        };
+
+        let allClients = [];
+        let currentClient = null;
+
+        // Load all clients from GHL
+        async function loadClients() {
+            try {
+                const response = await fetch(`${GHL_CONFIG.baseUrl}/contacts?locationId=${GHL_CONFIG.locationId}&tags=meal-plan-customer`, {
+                    headers: {
+                        'Authorization': `Bearer ${GHL_CONFIG.apiKey}`,
+                        'Version': '2021-07-28'
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load clients');
+
+                const data = await response.json();
+                allClients = data.contacts || [];
+                
+                displayClients(allClients);
+                updateStats(allClients);
+                
+            } catch (error) {
+                console.error('Error loading clients:', error);
+                document.getElementById('clientsGrid').innerHTML = '<div class="loading">❌ Error loading clients. Check API credentials.</div>';
+            }
+        }
+
+        // Display clients in grid
+        function displayClients(clients) {
+            const grid = document.getElementById('clientsGrid');
+            
+            if (clients.length === 0) {
+                grid.innerHTML = '<div class="loading">No clients found</div>';
+                return;
+            }
+
+            grid.innerHTML = clients.map(client => {
+                const customFields = client.customFields || {};
+                const status = customFields.meal_plan_status || 'active';
+                const duration = customFields.meal_plan_duration || '-';
+                const calories = customFields.meal_plan_calories || '-';
+                const createdDate = customFields.meal_plan_created_date ? 
+                    new Date(customFields.meal_plan_created_date).toLocaleDateString() : '-';
+
+                return `
+                    <div class="client-card" onclick='openClientModal("${client.id}")'>
+                        <div class="client-name">${client.firstName} ${client.lastName}</div>
+                        <span class="badge badge-${status}">${status.toUpperCase()}</span>
+                        
+                        <div class="client-detail">
+                            <span class="detail-label">Email:</span>
+                            <span class="detail-value">${client.email || '-'}</span>
+                        </div>
+                        <div class="client-detail">
+                            <span class="detail-label">Plan:</span>
+                            <span class="detail-value">${duration} days @ ${calories} cal/day</span>
+                        </div>
+                        <div class="client-detail">
+                            <span class="detail-label">Created:</span>
+                            <span class="detail-value">${createdDate}</span>
+                        </div>
+                        ${customFields.shopify_order_id ? `
+                        <div class="client-detail">
+                            <span class="detail-label">Order:</span>
+                            <span class="detail-value">#${customFields.shopify_order_id}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update stats
+        function updateStats(clients) {
+            document.getElementById('totalClients').textContent = clients.length;
+            document.getElementById('activeClients').textContent = 
+                clients.filter(c => c.customFields?.meal_plan_status === 'active').length;
+            
+            const avgDur = clients.length > 0 ?
+                Math.round(clients.reduce((sum, c) => sum + parseInt(c.customFields?.meal_plan_duration || 0), 0) / clients.length) : 0;
+            document.getElementById('avgDuration').textContent = avgDur;
+        }
+
+        // Filter clients
+        function filterClients() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            const filtered = allClients.filter(client => {
+                const matchesSearch = !searchTerm || 
+                    client.firstName?.toLowerCase().includes(searchTerm) ||
+                    client.lastName?.toLowerCase().includes(searchTerm) ||
+                    client.email?.toLowerCase().includes(searchTerm);
+
+                const matchesStatus = statusFilter === 'all' || 
+                    client.customFields?.meal_plan_status === statusFilter;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            displayClients(filtered);
+        }
+
+        // Open client modal
+        async function openClientModal(clientId) {
+            const client = allClients.find(c => c.id === clientId);
+            if (!client) return;
+
+            currentClient = client;
+            document.getElementById('modalClientName').textContent = 
+                `${client.firstName} ${client.lastName}`;
+
+            // Load profile tab
+            loadProfileTab(client);
+            
+            // Show modal
+            document.getElementById('clientModal').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('clientModal').classList.remove('active');
+            currentClient = null;
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+
+            // Load tab content
+            if (tabName === 'mealPlan') loadMealPlanTab(currentClient);
+            if (tabName === 'orders') loadOrdersTab(currentClient);
+            if (tabName === 'activity') loadActivityTab(currentClient);
+        }
+
+        // Load profile tab
+        function loadProfileTab(client) {
+            const cf = client.customFields || {};
+            document.getElementById('profileContent').innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#6b7280;">First Name</label>
+                        <input type="text" class="search-input" id="editFirstName" value="${client.firstName || ''}" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#6b7280;">Last Name</label>
+                        <input type="text" class="search-input" id="editLastName" value="${client.lastName || ''}" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#6b7280;">Email</label>
+                        <input type="email" class="search-input" id="editEmail" value="${client.email || ''}" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#6b7280;">Phone</label>
+                        <input type="tel" class="search-input" id="editPhone" value="${client.phone || ''}" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#6b7280;">Status</label>
+                        <select class="search-input" id="editStatus" style="width: 100%;">
+                            <option value="active" ${cf.meal_plan_status === 'active' ? 'selected' : ''}>Active</option>
+                            <option value="completed" ${cf.meal_plan_status === 'completed' ? 'selected' : ''}>Completed</option>
+                            <option value="paused" ${cf.meal_plan_status === 'paused' ? 'selected' : ''}>Paused</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:8px; font-weight:600; color:#6b7280;">Calories/Day</label>
+                        <input type="number" class="search-input" id="editCalories" value="${cf.meal_plan_calories || ''}" style="width: 100%;">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px; padding: 20px; background: #f9fafb; border-radius: 12px;">
+                    <h3 style="margin-bottom: 15px;">Metrics</h3>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                        <div><strong>BMI:</strong> ${cf.meal_plan_bmi || '-'}</div>
+                        <div><strong>BMR:</strong> ${cf.meal_plan_bmr || '-'}</div>
+                        <div><strong>Duration:</strong> ${cf.meal_plan_duration || '-'} days</div>
+                        <div><strong>Activity:</strong> ${cf.meal_plan_activity || '-'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load meal plan tab
+        function loadMealPlanTab(client) {
+            const mealPlanData = client.customFields?.meal_plan_data;
+            
+            if (!mealPlanData) {
+                document.getElementById('mealPlanContent').innerHTML = '<div class="loading">No meal plan data found</div>';
+                return;
+            }
+
+            try {
+                const mealPlan = JSON.parse(mealPlanData);
+                
+                let html = '';
+                mealPlan.forEach(day => {
+                    html += `
+                        <div class="meal-day">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                                <h3 style="color: #1e3a8a;">Day ${day.day}</h3>
+                                <span style="background: linear-gradient(135deg, #f068b3, #f093fb); color: white; padding: 5px 15px; border-radius: 20px; font-weight: 600;">${day.totalCal} cal</span>
+                            </div>
+                    `;
+                    
+                    Object.entries(day.meals).forEach(([type, meal]) => {
+                        html += `
+                            <div class="meal-item">
+                                <div class="meal-info">
+                                    <h4>${meal.icon} ${meal.name}</h4>
+                                    <p style="color: #6b7280; font-size: 13px;">${type} • ${meal.displayCal} cal</p>
+                                </div>
+                                <div class="meal-actions">
+                                    <button class="btn btn-secondary btn-small" onclick='viewRecipe(${JSON.stringify(meal).replace(/'/g, "\\'")} )'>👁️ View</button>
+                                    <button class="btn btn-primary btn-small" onclick='swapRecipe(${day.day}, "${type}")'>🔄 Swap</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div>`;
+                });
+                
+                document.getElementById('mealPlanContent').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('mealPlanContent').innerHTML = '<div class="loading">Error loading meal plan</div>';
+            }
+        }
+
+        // Load orders tab
+        function loadOrdersTab(client) {
+            const orderId = client.customFields?.shopify_order_id;
+            const orderUrl = client.customFields?.shopify_order_url;
+            
+            let html = '';
+            
+            if (orderId) {
+                html = `
+                    <div class="order-link">
+                        <span style="font-size: 24px;">🛒</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; color: #1e3a8a;">Order #${orderId}</div>
+                            <div style="color: #6b7280; font-size: 14px;">Linked Shopify Order</div>
+                        </div>
+                        <a href="${orderUrl || '#'}" target="_blank" class="btn btn-primary">View in Shopify →</a>
+                    </div>
+                `;
+            } else {
+                html = '<div class="loading">No Shopify order linked yet</div>';
+            }
+            
+            document.getElementById('ordersContent').innerHTML = html;
+        }
+
+        // Load activity tab
+        function loadActivityTab(client) {
+            const createdDate = client.customFields?.meal_plan_created_date;
+            document.getElementById('activityContent').innerHTML = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px;">Recent Activity</h3>
+                    <div style="border-left: 3px solid #3b82f6; padding-left: 20px;">
+                        <div style="margin: 20px 0;">
+                            <div style="font-weight: 700;">Meal Plan Created</div>
+                            <div style="color: #6b7280; font-size: 14px;">${createdDate ? new Date(createdDate).toLocaleString() : '-'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Save client profile
+        async function saveClientProfile() {
+            if (!currentClient) return;
+
+            const updatedData = {
+                firstName: document.getElementById('editFirstName').value,
+                lastName: document.getElementById('editLastName').value,
+                email: document.getElementById('editEmail').value,
+                phone: document.getElementById('editPhone').value,
+                customFields: [
+                    { key: 'meal_plan_status', value: document.getElementById('editStatus').value },
+                    { key: 'meal_plan_calories', value: document.getElementById('editCalories').value }
+                ]
+            };
+
+            try {
+                const response = await fetch(`${GHL_CONFIG.baseUrl}/contacts/${currentClient.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${GHL_CONFIG.apiKey}`,
+                        'Content-Type': 'application/json',
+                        'Version': '2021-07-28'
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+
+                if (response.ok) {
+                    alert('✅ Client profile updated successfully!');
+                    loadClients();
+                } else {
+                    alert('❌ Error updating profile');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Error updating profile');
+            }
+        }
+
+        // Email meal plan
+        async function emailMealPlan() {
+            alert('📧 Sending meal plan via Klaviyo...');
+            // Trigger Klaviyo email flow
+        }
+
+        // Print meal plan
+        function printMealPlan() {
+            window.print();
+        }
+
+        // Download PDF
+        function downloadPDF() {
+            alert('📄 PDF download feature coming soon!');
+        }
+
+        // View recipe
+        function viewRecipe(meal) {
+            alert(`Recipe: ${meal.name}\n\nIngredients:\n${meal.displayIng.join('\n')}\n\nInstructions:\n${meal.steps.join('\n')}`);
+        }
+
+        // Swap recipe
+        function swapRecipe(day, mealType) {
+            alert(`Swapping ${mealType} for Day ${day}. Recipe selection coming soon!`);
+        }
+
+        // Search clients
+        document.getElementById('searchInput').addEventListener('input', filterClients);
+
+        // Initialize
+        loadClients();
+    </script>
+</body>
+</html>
